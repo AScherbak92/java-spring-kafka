@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-order-service
+    environment:
+      - MYSQL_ROOT_PASSWORD=*
+      - MYSQL_DATABASE=orders
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - kafka-cluster-network
+
+  order-service:
+    image: openjdk:21-jdk-slim
+    container_name: order-service
+    ports:
+      - "8080"
+    volumes:
+      - ./orderService/target/orderService-0.0.1-SNAPSHOT.jar:/app/app.jar
+    working_dir: /app
+    command: java -jar app.jar
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9094,kafka-3:9096
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9094,kafka-3:9096
+    networks:
+      - kafka-cluster-network
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:
+
+networks:
+  kafka-cluster-network:
+    external: true
