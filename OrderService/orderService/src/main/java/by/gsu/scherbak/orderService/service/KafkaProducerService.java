@@ -54,10 +54,4 @@ public class KafkaProducerService {
                 });
     }
 
-    /*Method for recovering after failed to send message*/
-    @Recover
-    public CompletableFuture<Boolean> recoverSendMessage(Exception e, OrderEvent orderEvent) {
-        LOGGER.error("All retries failed for order: {}", orderEvent.getId(), e);
-        return CompletableFuture.completedFuture(false);
-    }
 }

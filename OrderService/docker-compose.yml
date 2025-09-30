@@ -1,36 +1,50 @@
+version: "3.8"
+
 services:
   mysql:
     image: mysql:8.0
     container_name: mysql-order-service
     environment:
-      - MYSQL_ROOT_PASSWORD=*
+      - MYSQL_ROOT_PASSWORD=48Wgtmnhjwa
       - MYSQL_DATABASE=orders
     volumes:
       - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
     networks:
-      - kafka-cluster-network
+      - kafka-mysql-network
 
   order-service:
     image: openjdk:21-jdk-slim
     container_name: order-service
     ports:
-      - "8080"
+      - "8080:8080"
     volumes:
       - ./orderService/target/orderService-0.0.1-SNAPSHOT.jar:/app/app.jar
     working_dir: /app
     command: java -jar app.jar
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9094,kafka-3:9096
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9094,kafka-3:9096
-    networks:
-      - kafka-cluster-network
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_PRODUCER_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_PRODUCER_KEY_SERIALIZER=org.apache.kafka.common.serialization.StringSerializer
+      - SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER=org.springframework.kafka.support.serializer.JsonSerializer
+      - SPRING_KAFKA_PRODUCER_ACKS=all
+      - SPRING_KAFKA_PRODUCER_RETRIES=10
+      - SPRING_KAFKA_PRODUCER_PROPERTIES_DELIVERY_TIMEOUT_MS=30000
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/orders?serverTimezone=UTC&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=48Wgtmnhjwa
+      - SERVER_PORT=8080
     depends_on:
       - mysql
+    restart: on-failure
+    networks:
+      - kafka-mysql-network
 
 volumes:
   mysql_data:
-
+  
 networks:
-  kafka-cluster-network:
+  kafka-mysql-network:
     external: true
