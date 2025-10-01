@@ -5,7 +5,7 @@ services:
     image: mysql:8.0
     container_name: mysql-order-service
     environment:
-      - MYSQL_ROOT_PASSWORD=*
+      - MYSQL_ROOT_PASSWORD=48Wgtmnhjwa
       - MYSQL_DATABASE=orders
     volumes:
       - mysql_data:/var/lib/mysql
@@ -34,7 +34,7 @@ services:
       - SPRING_KAFKA_PRODUCER_PROPERTIES_DELIVERY_TIMEOUT_MS=30000
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/orders?serverTimezone=UTC&characterEncoding=UTF-8
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=*
+      - SPRING_DATASOURCE_PASSWORD=48Wgtmnhjwa
       - SERVER_PORT=8080
     depends_on:
       - mysql

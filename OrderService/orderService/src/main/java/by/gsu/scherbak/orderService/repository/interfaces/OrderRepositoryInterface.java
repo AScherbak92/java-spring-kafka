@@ -1,5 +1,6 @@
-package by.gsu.scherbak.orderService.repository;
+package by.gsu.scherbak.orderService.repository.interfaces;
 
+import by.gsu.scherbak.orderService.repository.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
