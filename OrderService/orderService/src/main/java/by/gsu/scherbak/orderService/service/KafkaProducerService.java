@@ -1,7 +1,6 @@
 package by.gsu.scherbak.orderService.service;
 
 import by.gsu.scherbak.orderLibrary.OrderEvent;
-import by.gsu.scherbak.orderService.repository.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
