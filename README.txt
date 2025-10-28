@@ -1,4 +1,4 @@
-1.Directory of docker-compose file: Kafka+Java+Spring\DockerDocker
+1.Directory of docker-compose file: Kafka+Java+Spring\Docker
 
 When my-sql connection established and kafka servers are up ->
   -Order-service will be started on port 8080
