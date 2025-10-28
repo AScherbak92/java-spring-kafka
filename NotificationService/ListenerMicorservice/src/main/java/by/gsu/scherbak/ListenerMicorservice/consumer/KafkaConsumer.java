@@ -36,4 +36,13 @@ public class KafkaConsumer {
             LOGGER.error("Unexpected processing order: {}. Error: {}", order.toString(), e.getMessage());
         }
     }
+
+    /*Method for processing DLT messages*/
+    @KafkaListener(
+            topics = "Orders-topic.DLT",
+            groupId = "${spring.kafka.consumer.group-id}.DLT"
+    )
+    public void processDLTMessage(OrderEvent order) {
+        LOGGER.warn("Received message in DLT: {}", order);
+    }
 }

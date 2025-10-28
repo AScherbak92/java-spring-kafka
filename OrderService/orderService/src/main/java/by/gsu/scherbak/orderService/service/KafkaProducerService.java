@@ -9,6 +9,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /*
@@ -36,15 +37,29 @@ public class KafkaProducerService {
     public void sendMessageToKafka(OrderEvent orderEvent)
             throws ExecutionException, InterruptedException {
         try {
-            kafkaTemplate.send("Orders-topic",
-                    orderEvent.getId(),toString(), orderEvent).get();
-
-            LOGGER.info("Message {} sent successfully to kafka.", orderEvent.getId());
-
+            //DLT SIMULATED EXCEPTION
+            if (Objects.equals(orderEvent.getDescription(), "DLT")){
+                throw new RuntimeException("SIMULATED");
+            }
+            kafkaTemplate.executeInTransaction(operations -> {
+                operations.send("Orders-topic",
+                        orderEvent.getId().toString(), orderEvent);
+                LOGGER.info("Message {} sent successfully to kafka.", orderEvent.getId());
+                return true;
+            });
         } catch (Exception e) {
-            LOGGER.error("Failed to send message to kafka: {}", orderEvent.getId(), e);
+            LOGGER.warn("Failed to send message to kafka: {}", orderEvent.getId(), e);
+            sendToDLT(orderEvent, e);
             throw e;
         }
     }
 
+    private void sendToDLT(OrderEvent orderEvent, Exception cause) {
+        try {
+            kafkaTemplate.send("Orders-topic.DLT", orderEvent.getId().toString(), orderEvent);
+            LOGGER.warn("Sending failed message to DLT due to " + cause.getMessage());
+        } catch (Exception e){
+            LOGGER.error("Failed to send message even to DLT: " + e.getMessage());
+        }
+    }
 }

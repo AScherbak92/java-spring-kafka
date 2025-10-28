@@ -41,9 +41,11 @@ public class KafkaConfig {
     @Value("${spring.kafka.producer.properties.delivery.timeout.ms}")
     private String deliveryTimeoutMs;
 
-    /*Method for setting kafka producer configs*/
-    Map<String, Object> setProducerConfigs() {
+    /*Bean for producer factory*/
+    @Bean
+    ProducerFactory<String, OrderEvent> producerFactory() {
         Map<String, Object> configs = new HashMap<>();
+        DefaultKafkaProducerFactory<String, OrderEvent> factory;
 
         /*Producer properties*/
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
@@ -52,20 +54,19 @@ public class KafkaConfig {
         configs.put(ProducerConfig.ACKS_CONFIG, acks);
         configs.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeoutMs);
         configs.put(ProducerConfig.RETRIES_CONFIG, retries);
+        configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configs.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "order-producer-tx");
 
-        return configs;
-    }
+        factory = new DefaultKafkaProducerFactory<>(configs);
+        factory.setTransactionIdPrefix("orders-tx-");
 
-    /*Bean for producer factory*/
-    @Bean
-    ProducerFactory<String, OrderEvent> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(setProducerConfigs());
+        return factory;
     }
 
     /*Bean for kafka template*/
     @Bean
     KafkaTemplate<String, OrderEvent> kafkaTemplate() {
-        return new KafkaTemplate<String, OrderEvent>(producerFactory());
+        return new KafkaTemplate<>(producerFactory());
     }
 
 
@@ -76,6 +77,14 @@ public class KafkaConfig {
                 .partitions(3)
                 .replicas(3)
                 .configs(Map.of("min.insync.replicas", "2"))
+                .build();
+    }
+
+    @Bean
+    NewTopic ordersDLT() {
+        return TopicBuilder.name("Orders-topic.DLT")
+                .partitions(3)
+                .replicas(1)
                 .build();
     }
 }

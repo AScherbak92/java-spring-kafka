@@ -5,8 +5,10 @@ services:
     image: mysql:8.0
     container_name: mysql-order-service
     environment:
-      - MYSQL_ROOT_PASSWORD=*
       - MYSQL_DATABASE=orders
+      - MYSQL_ROOT_HOST=%
+        #ЗАМЕНИТЬ НА СВОЁ
+      - MYSQL_ROOT_PASSWORD=*
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -15,7 +17,7 @@ services:
       - kafka-mysql-network
       
   kafka-1:
-    image: bitnami/kafka:latest
+    image: bitnamilegacy/kafka:latest
     container_name: kafka-1
     ports:
       - "9092:9092"
@@ -33,7 +35,7 @@ services:
       - kafka-mysql-network
       
   kafka-2:
-    image: bitnami/kafka:latest
+    image: bitnamilegacy/kafka:latest
     container_name: kafka-2
     ports:
       - "9094:9094"
@@ -51,7 +53,7 @@ services:
       - kafka-mysql-network
       
   kafka-3:
-    image: bitnami/kafka:latest
+    image: bitnamilegacy/kafka:latest
     container_name: kafka-3
     ports:
       - "9096:9096"
@@ -69,7 +71,6 @@ services:
       - kafka-mysql-network      
 
   order-service:
-    image: openjdk:21-jdk-slim
     container_name: order-service
     build:
       context: ../OrderService/orderService   
@@ -77,15 +78,15 @@ services:
     ports:
       - "8080:8080"
     working_dir: /app
-    command: 
-      - /bin/bash
-      - -c
-      - |
-        echo "Waiting for MySQL to be ready..."
-        until nc -z mysql 3306; do sleep 1; done
-        echo "Waiting for Kafka..."
-        sleep 30
+    command: >
+      bash -c "
+        echo 'Waiting for MySQL to be ready...';
+        while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/mysql/3306' 2>/dev/null; do sleep 1; done;
+        echo 'MySQL is ready!';
+        echo 'Waiting for Kafka...';
+        sleep 30;
         java -jar /app/app.jar
+      "
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
@@ -96,11 +97,88 @@ services:
       - SPRING_KAFKA_PRODUCER_RETRIES=10
       - SPRING_KAFKA_PRODUCER_PROPERTIES_DELIVERY_TIMEOUT_MS=30000
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/orders?serverTimezone=UTC&characterEncoding=UTF-8
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=*
       - SERVER_PORT=8080
+      #ЗАМЕНИТЬ НА СВОЁ
+      - SPRING_DATASOURCE_USERNAME=*
+      - SPRING_DATASOURCE_PASSWORD=*
     depends_on:
       - mysql
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    networks:
+      - kafka-mysql-network
+    restart: on-failure
+    
+  notification-service:
+    container_name: notification-service
+    build:
+      context: ../NotificationService/ListenerMicorservice
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    working_dir: /app
+    command: >
+      bash -c "
+        echo 'Waiting for Kafka cluster to be ready...';
+        while ! kafka-topics.sh --bootstrap-server kafka-1:9090 --list > /dev/null 2>&1; do
+          echo 'Kafka not ready yet, waiting...';
+          sleep 5;
+        done;
+        echo 'Kafka is ready! Starting Notification Service...';
+        java -jar /app/app.jar
+      "
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_APPLICATION_NAME=ListenerMicorservice
+      - SERVER_PORT=8081
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_CONSUMER_KEY_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
+      - SPRING_KAFKA_CONSUMER_VALUE_DESERIALIZER=org.springframework.kafka.support.serializer.JsonDeserializer
+      - SPRING_KAFKA_CONSUMER_GROUP_ID=Order-listeners
+      - SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES=by.gsu.scherbak.orderLibrary
+      - KAFKA_CONSUMER_TOPICS=Orders-topic
+      - SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    networks:
+      - kafka-mysql-network
+    restart: on-failure
+
+  websocket-service:
+    container_name: websocket-service
+    build:
+      context: ../Web/webSocket
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    working_dir: /app
+    command: >
+      bash -c "
+        echo 'Waiting for Kafka cluster to be ready...';
+        while ! kafka-topics.sh --bootstrap-server kafka-1:9090 --list > /dev/null 2>&1; do
+          echo 'Kafka not ready yet, waiting...';
+          sleep 5;
+        done;
+        echo 'Kafka is ready! Starting Notification Service...';
+        java -jar /app/app.jar
+      "
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_APPLICATION_NAME=webSocket
+      - SERVER_PORT=8082
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka-1:9090,kafka-2:9090,kafka-3:9090
+      - SPRING_KAFKA_CONSUMER_KEY_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
+      - SPRING_KAFKA_CONSUMER_VALUE_DESERIALIZER=org.springframework.kafka.support.serializer.JsonDeserializer
+      - SPRING_KAFKA_CONSUMER_GROUP_ID=Websocket-listeners
+      - SPRING_KAFKA_CONSUMER_PROPERTIES_SPRING_JSON_TRUSTED_PACKAGES=by.gsu.scherbak.orderLibrary
+      - KAFKA_CONSUMER_TOPICS=Orders-topic
+      - SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    depends_on:
       - kafka-1
       - kafka-2
       - kafka-3
