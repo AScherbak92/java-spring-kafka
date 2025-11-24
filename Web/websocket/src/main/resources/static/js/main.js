@@ -20,7 +20,7 @@ function showOrderEvent(orderEvent) {
     orderElement.innerHTML = `
         <div class="order-header">
             <span class="order-id"> Order #${orderEvent.id || 'N/A'}</span>
-            <span class="order-price"> $${orderEvent.price || 0}</span>
+            <span class="order-price"> PRICE:${orderEvent.price || 0}</span>
         </div>
         <div class="order-description">${orderEvent.description || 'No description'}</div>
         <div class="order-timestamp"> ${timestamp}</div>

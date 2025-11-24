@@ -54,7 +54,7 @@ public class KafkaProducerService {
         }
     }
 
-    private void sendToDLT(OrderEvent orderEvent, Exception cause) {
+    public void sendToDLT(OrderEvent orderEvent, Exception cause) {
         try {
             kafkaTemplate.send("Orders-topic.DLT", orderEvent.getId().toString(), orderEvent);
             LOGGER.warn("Sending failed message to DLT due to " + cause.getMessage());

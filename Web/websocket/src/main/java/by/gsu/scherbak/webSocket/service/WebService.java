@@ -2,7 +2,6 @@ package by.gsu.scherbak.webSocket.service;
 
 import by.gsu.scherbak.orderLibrary.OrderEvent;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +18,7 @@ public class WebService {
     }
 
     /*Method for sending message to web*/
-    private void sendOrder(OrderEvent orderEvent){
+    public void sendOrder(OrderEvent orderEvent){
         messagingTemplate.convertAndSend("/topic/messages", orderEvent);
     }
 

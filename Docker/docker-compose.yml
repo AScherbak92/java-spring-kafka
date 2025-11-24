@@ -99,7 +99,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/orders?serverTimezone=UTC&characterEncoding=UTF-8
       - SERVER_PORT=8080
       #ЗАМЕНИТЬ НА СВОЁ
-      - SPRING_DATASOURCE_USERNAME=*
+      - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=*
     depends_on:
       - mysql
